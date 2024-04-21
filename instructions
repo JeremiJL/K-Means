@@ -1,0 +1,22 @@
+Instructions
+Implement k-means algorithm.
+Use euclidean distance to calculate distances between observations and centroids.
+
+
+After run (or in command line arguments) program asks user for k - number of clusters.
+Then, program assigns observations to clusters randomly and starts
+calculations of centroids and new clusters in a loop.
+
+After each iteration (reassignment of clusters) your program should print:
+
+sum of distances between observations and centroid of observation's
+cluster (that is one value for all observations.)
+the purity of each cluster - percent of each label in each cluster,
+example of the output for k=2: "cluster1: 100% iris-setosa, cluster 2: 50% iris virginica 50% iris versicolor"
+
+Program should stop when there is no change in any cluster.
+
+Program should work for any number of attributes, which is
+recognized automatically from the data file.
+Program should be tested on iris dataset. K-means is a clustering algorithm
+so labels should be used only for calculations of purity. Labels do not influence the clusters in any way.
