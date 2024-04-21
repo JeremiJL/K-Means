@@ -8,12 +8,13 @@ class Converter:
         self.directory = directory
         # Depending on the presence of labels converter changes behaviour
         self.is_data_labelled = is_data_labelled
-        # Labels tuple
-        self.labels = None
-        # Observations tuple
-        self.observations = None
-        # Convert raw data into observations objects and list of labels
-        self.convert()
+        # Labels list
+        self.labels = []
+        # Observations list
+        self.observations = []
+        # dimensionality of observations
+        self.dimensions = None
+
 
     def convert(self):
 
@@ -36,3 +37,6 @@ class Converter:
 
                 observation = Observation(coordinates=attributes, label=label)
                 self.observations.append(observation)
+
+        # Store the number of dimensions of observations data
+        self.dimensions = len(self.observations[0].coordinates)

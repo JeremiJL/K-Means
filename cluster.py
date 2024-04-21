@@ -5,6 +5,14 @@ class Cluster:
         self.name = name
         # Coordinates of the cluster in space
         self.coordinates = coordinates
+        # List of assigned observations
+        self.observations = []
 
     def update(self, coordinates):
         self.coordinates = coordinates
+
+    def assign_observation(self, observation):
+        self.observations.append(observation)
+
+    def reset_observations_assignment(self):
+        self.observations = []
