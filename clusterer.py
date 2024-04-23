@@ -5,7 +5,6 @@ from cluster import Cluster
 
 
 def is_still_running(cluster_old_observations):
-
     # Check if any cluster's list of assigned observations changed
     for cluster in cluster_old_observations:
         for observation in cluster.observations:
@@ -14,6 +13,17 @@ def is_still_running(cluster_old_observations):
 
     # If cluster observation assignment stays the same, we should end model creation - break out from the loop
     return False
+
+
+def calculate_distance(observation, centroid):
+    distance = 0
+    # Iterate over each dimension of vectors
+    for a, b in zip(observation.coordinates, centroid.coordinates):
+        # Increment sum of Euclidean distances
+        distance += pow((a - b), 2)
+    # Compute square root of sum to make it a Euclidean distance
+    distance = math.sqrt(distance)
+    return distance
 
 
 class Clusterer:
@@ -65,20 +75,19 @@ class Clusterer:
             for cluster in self.clusters:
                 cluster.reset_observations_assignment()
 
-            # Dictionary that maps clusters with sum of distances per dimension between their
-            # centroids and assigned observations
-            cluster_sum_of_distances_map = dict()
+            # Dictionary that maps clusters with center of points of their assigned observations
+            cluster_center_of_points = dict()
             # Dictionary that maps clusters with number of observations assigned to it
             cluster_number_of_observations = dict()
             for cluster in self.clusters:
-                cluster_sum_of_distances_map[cluster] = [0 for _ in range(0, self.dimensions)]
+                cluster_center_of_points[cluster] = [0 for _ in range(0, self.dimensions)]
                 cluster_number_of_observations[cluster] = 0
 
             # Assign nearest cluster to each observation
-            self.assign_clusters(cluster_sum_of_distances_map, cluster_number_of_observations)
+            self.assign_clusters(cluster_center_of_points, cluster_number_of_observations)
 
             # Reposition clusters' centroids
-            self.reposition_clusters(cluster_sum_of_distances_map, cluster_number_of_observations)
+            self.reposition_clusters(cluster_center_of_points, cluster_number_of_observations)
 
             # If observations data is labeled, inform about purity of clusters
             if self.is_data_labeled:
@@ -115,7 +124,7 @@ class Clusterer:
                 coordinates.append(random.uniform(min_values[i], max_values[i]))
             self.clusters.append(Cluster("cluster " + str(c), coordinates))
 
-    def assign_clusters(self, cluster_sum_of_distances_map, cluster_number_of_observations):
+    def assign_clusters(self, cluster_center_of_points, cluster_number_of_observations):
 
         # Find nearest centroid for each observation based on Euclidean distance
         for observation in self.observations:
@@ -123,46 +132,32 @@ class Clusterer:
             smallest_distance = None
             # Store nearest centroid
             nearest_cluster = None
-            # Valuable for centroid's reposition
-            # store distance from observation to centroid in respect of each dimension
-            smallest_distances_per_dimension = []
             # Iterate over each cluster
             for cluster in self.clusters:
-                distance = 0
-                distances_per_dimension = []
-                for a, b in zip(observation.coordinates, cluster.coordinates):
-                    # Increment sum of Euclidean distances
-                    distance += pow((a - b), 2)
-                    # Update list of distances per each dimension
-                    distances_per_dimension.append(math.fabs(a - b))
-                # Compute square root of sum to make it a Euclidean distance
-                distance = math.sqrt(distance)
+
+                distance = calculate_distance(observation, cluster)
+
                 # Compare this distance with the smallest distance recorded for this observation
                 if smallest_distance is None or distance < smallest_distance:
                     smallest_distance = distance
                     nearest_cluster = cluster
-                    smallest_distances_per_dimension = distances_per_dimension
+
             # Finally we can assign cluster for observation
             observation.assign(nearest_cluster)
             # And assign this observation to cluster
             nearest_cluster.assign_observation(observation)
-            # Also we update two dictionaries which will be utilized in further step
-            cluster_number_of_observations[nearest_cluster] += 1
-            # We need to store sum of distances per each dimension in order to reposition centroid
-            updated_sum_of_distances = []
-            for summed_distances, new_distance in \
-                    (zip(cluster_sum_of_distances_map[nearest_cluster], smallest_distances_per_dimension)):
-                updated_sum_of_distances.append(summed_distances + new_distance)
-            # Update sum of distances per dimension of this centroid
-            cluster_sum_of_distances_map[nearest_cluster] = updated_sum_of_distances
 
-    def reposition_clusters(self, cluster_sum_of_distance_map, cluster_number_of_observations):
+            # Also we update two dictionaries which will be utilized in further step to determine new centroid location
+            cluster_number_of_observations[nearest_cluster] += 1
+            cluster_center_of_points[nearest_cluster] = [old + new for old, new in zip(cluster_center_of_points[nearest_cluster], observation.coordinates)]
+
+    def reposition_clusters(self, cluster_center_of_points, cluster_number_of_observations):
 
         # Reposition each clusters' centroid
         for cluster in self.clusters:
             # Number of assigned observations
             num_of_o = cluster_number_of_observations[cluster]
-            summed_coordinates = cluster_sum_of_distance_map[cluster]
+            summed_coordinates = cluster_center_of_points[cluster]
             # If no observations are assigned to this cluster, don't modify its coordinates
             # in order to avoid division by 0
             if num_of_o != 0:
@@ -175,7 +170,7 @@ class Clusterer:
 
     def test(self, i):
 
-        print("Iteration ",i)
+        print("Iteration ", i)
 
         print("Clusters : ")
         for cluster in self.clusters:
