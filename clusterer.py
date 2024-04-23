@@ -26,6 +26,15 @@ def calculate_distance(observation, centroid):
     return distance
 
 
+def compute_summed_distances(cluster):
+    sum_of_distances = 0
+    # Iterate for each assigned observation for cluster and sum the distances
+    for observation in cluster.observations:
+        sum_of_distances += calculate_distance(observation, cluster)
+
+    return sum_of_distances
+
+
 class Clusterer:
 
     def __init__(self, observations, dimensions, k, is_data_labeled=False, labels=None):
@@ -49,7 +58,7 @@ class Clusterer:
 
         # As initial step we need to somehow chose initial locations for clusters' centroids
         # Clusterer class comes with several methods for choosing initial clusters' centroids
-        self.random_location_for_centroids()
+        self.location_of_centroids_based_on_random_observations()
 
         # Dictionary maps cluster with old (previous iteration) observations assigned to cluster
         # This dictionary is used in stop property of a loop which is responsible for model creation
@@ -89,12 +98,8 @@ class Clusterer:
             # Reposition clusters' centroids
             self.reposition_clusters(cluster_center_of_points, cluster_number_of_observations)
 
-            # If observations data is labeled, inform about purity of clusters
-            if self.is_data_labeled:
-                print("Purity level: " + str(self.compute_purity()))
-
-            # TMP TEST
-            self.test(iteration)
+            # Print information about clusters state
+            self.print_clusterer_state(iteration)
 
     def location_of_centroids_based_on_random_observations(self):
 
@@ -149,7 +154,9 @@ class Clusterer:
 
             # Also we update two dictionaries which will be utilized in further step to determine new centroid location
             cluster_number_of_observations[nearest_cluster] += 1
-            cluster_center_of_points[nearest_cluster] = [old + new for old, new in zip(cluster_center_of_points[nearest_cluster], observation.coordinates)]
+            cluster_center_of_points[nearest_cluster] = [old + new for old, new in
+                                                         zip(cluster_center_of_points[nearest_cluster],
+                                                             observation.coordinates)]
 
     def reposition_clusters(self, cluster_center_of_points, cluster_number_of_observations):
 
@@ -165,8 +172,35 @@ class Clusterer:
                 # Update cluster's coordinates
                 cluster.update(new_coordinates)
 
-    def compute_purity(self):
-        pass
+    def print_clusterer_state(self, iteration):
+        # Print the most important information about clusterer state
+        print("Iteration", str(iteration) + ".")
+        for cluster in self.clusters:
+            print("\t" + cluster.name, " : \n\t\tnumber of assigned observations -", len(cluster.observations),
+                  "\n\t\tcentroid's coordinates :", cluster.coordinates, "\n\t\tsum of distances -",
+                  compute_summed_distances(cluster))
+            # If observations data is labeled, inform about purity of clusters
+            print("\t\tpurity : " + str(self.compute_purity(cluster)))
+
+    def compute_purity(self, cluster):
+
+        # Dictionary mapping labels with proportions
+        label_proportion = dict()
+        # Fill with initial data
+        for label in self.labels:
+            label_proportion[label] = 0
+
+        # Increment for each observation
+        for observation in cluster.observations:
+            label_proportion[observation.label] += 1
+
+        # Divide by number of all assigned observations to this cluster
+        for key in label_proportion.keys():
+            if len(cluster.observations) > 0:
+                label_proportion[key] = str((label_proportion[key] / len(cluster.observations) * 100)) + "%"
+            else:
+                return "No observations assigned"
+        return label_proportion
 
     def test(self, i):
 
@@ -176,7 +210,3 @@ class Clusterer:
         for cluster in self.clusters:
             print("name -", cluster.name, "coordinates -", cluster.coordinates, "num of assigned observations -",
                   len(cluster.observations))
-        #
-        # print("Observations : ")
-        # for observation in self.observations:
-        #     print("label -", observation.label, "cluster -", observation.cluster.name)

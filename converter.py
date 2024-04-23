@@ -15,7 +15,6 @@ class Converter:
         # dimensionality of observations
         self.dimensions = None
 
-
     def convert(self):
 
         # Fill observations list and labels list
